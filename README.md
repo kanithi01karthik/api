@@ -24,8 +24,9 @@
 
 ### Features:
 
--   Get student details using roll number
--   Get simplified view of timetable to embed into your applications
+- Get student details using roll number
+- Get simplified view of timetable to embed into your applications
+- Get real-time library seat availability
 
 ## Routes
 
@@ -41,9 +42,9 @@ Returns the health status of the API server.
 
 ```json
 {
-    "status": "ok",
-    "uptime": 12345.67,
-    "timestamp": "2026-01-16T14:32:10.123Z"
+  "status": "ok",
+  "uptime": 12345.67,
+  "timestamp": "2026-01-16T14:32:10.123Z"
 }
 ```
 
@@ -52,6 +53,62 @@ Returns the health status of the API server.
 | status    | string | Health status of the API |
 | uptime    | number | Server uptime in seconds |
 | timestamp | string | ISO 8601 timestamp       |
+
+---
+
+### Get Library Seat Availability
+
+```http
+GET /library/getSeats
+```
+
+Returns real-time library seat availability information across all floors.
+
+#### Response (200)
+
+```json
+{
+  "totalAvailableSeats": 390,
+  "totalCapacity": 390,
+  "capacity": [
+    {
+      "floor": "Floor 1",
+      "occupiedSeats": 0,
+      "availableSeats": 114,
+      "totalSeats": 114,
+      "availableSeatIds": [1, 2, 3]
+    }
+  ]
+}
+```
+
+| Field               | Type     | Description                           |
+| ------------------- | -------- | ------------------------------------- |
+| totalAvailableSeats | number   | Total available seats in the library  |
+| totalCapacity       | number   | Total seating capacity of the library |
+| capacity            | object[] | Floor-wise seating statistics         |
+
+#### capacity Object
+
+| Field            | Type     | Description                                  |
+| ---------------- | -------- | -------------------------------------------- |
+| floor            | string   | Floor name                                   |
+| occupiedSeats    | number   | Number of occupied seats on the floor        |
+| availableSeats   | number   | Number of available seats on the floor       |
+| totalSeats       | number   | Total seats available on the floor           |
+| availableSeatIds | number[] | Available seat numbers relative to the floor |
+
+#### Error Response (404)
+
+```json
+{
+  "error": "Library information not found"
+}
+```
+
+| Field | Type   | Description   |
+| ----- | ------ | ------------- |
+| error | string | Error message |
 
 ---
 
@@ -73,8 +130,8 @@ Returns the group and subgroup (e.g., `B6`, `a`) of a first-year student based o
 
 ```json
 {
-    "group": "B6",
-    "subGroup": "a"
+  "group": "B6",
+  "subGroup": "a"
 }
 ```
 
@@ -107,20 +164,20 @@ Returns the timetable for first-year students.
 
 ```json
 {
-    "timetableData": {
-        "Monday": {
-            "period1": [
-                [
-                    {
-                        "subject": "Maths",
-                        "faculty": "Dr. Sharma",
-                        "room": "LT-1"
-                    }
-                ]
-            ]
-        }
-    },
-    "notes": ["Practical classes start next week"]
+  "timetableData": {
+    "Monday": {
+      "period1": [
+        [
+          {
+            "subject": "Maths",
+            "faculty": "Dr. Sharma",
+            "room": "LT-1"
+          }
+        ]
+      ]
+    }
+  },
+  "notes": ["Practical classes start next week"]
 }
 ```
 
@@ -128,17 +185,17 @@ Returns the timetable for first-year students.
 
 ```ts
 Record<
+  string,
+  Record<
     string,
-    Record<
-        string,
-        Array<
-            Array<{
-                subject: string;
-                faculty: string;
-                room: string;
-            }>
-        >
+    Array<
+      Array<{
+        subject: string;
+        faculty: string;
+        room: string;
+      }>
     >
+  >
 >;
 ```
 
@@ -156,7 +213,7 @@ Record<
 
 ```json
 {
-    "error": "Invalid group parameter"
+  "error": "Invalid group parameter"
 }
 ```
 
