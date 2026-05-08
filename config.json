@@ -1,8 +1,9 @@
 {
-    "url": {
-        "sessionAndDept": "https://xceed.nitj.ac.in/timetablemodule/timetable/sess/allsessanddept",
-        "sem": "https://xceed.nitj.ac.in/timetablemodule/addsem?code=",
-        "deptCode": "https://xceed.nitj.ac.in/timetablemodule/timetable/getcode",
-        "timeTable": "https://xceed.nitj.ac.in/timetablemodule/lock/lockclasstt/"
-    }
+  "url": {
+    "sessionAndDept": "https://xceed.nitj.ac.in/timetablemodule/timetable/sess/allsessanddept",
+    "sem": "https://xceed.nitj.ac.in/timetablemodule/addsem?code=",
+    "deptCode": "https://xceed.nitj.ac.in/timetablemodule/timetable/getcode",
+    "timeTable": "https://xceed.nitj.ac.in/timetablemodule/lock/lockclasstt/",
+    "librarySeats": "https://v1.nitj.ac.in/erp/library_seating/api.php?action=get-seats"
+  }
 }
