@@ -1,5 +1,4 @@
 import { OpenAPIHono, z } from "@hono/zod-openapi";
-import { fetch } from "bun";
 import config from "../../../config.json" assert { type: "json" };
 import { getFirstYearGroups } from "../../../lib/firstYear";
 import type { semDataType, timetableDataType } from "../../../types/xceed";
@@ -60,6 +59,22 @@ year1.openapi(
                     },
                 },
             },
+            500: {
+                description: "Internal server error",
+                content: {
+                    "application/json": {
+                        schema: errorSchema,
+                    },
+                },
+            },
+            502: {
+                description: "Failed to fetch timetable data",
+                content: {
+                    "application/json": {
+                        schema: errorSchema,
+                    },
+                },
+            },
         },
     },
     async c => {
@@ -73,11 +88,19 @@ year1.openapi(
         }
 
         try {
-            const fetchedData = await fetch(
-                `${config.url.timeTable}/${encodeURIComponent(groupData.code.toString())}/${encodeURIComponent(
-                    groupData.sem.toString()
-                )}`
-            );
+            const controller = new AbortController();
+            const fetchTimeout = setTimeout(() => controller.abort(), 8000);
+            let fetchedData: Response;
+            try {
+                fetchedData = await fetch(
+                    `${config.url.timeTable}/${encodeURIComponent(groupData.code.toString())}/${encodeURIComponent(
+                        groupData.sem.toString()
+                    )}`,
+                    { signal: controller.signal }
+                );
+            } finally {
+                clearTimeout(fetchTimeout);
+            }
 
             if (!fetchedData.ok) {
                 return c.json({ error: "Failed to fetch timetable data" }, 502);
@@ -86,8 +109,11 @@ year1.openapi(
             const data = (await fetchedData.json()) as timetableDataType;
 
             return c.json(data, 200);
-        } catch (error) {
-            return c.json({ error: "An error occurred while fetching timetable data" }, 500);
+        } catch (error: unknown) {
+            const message = error instanceof Error && error.name === "AbortError"
+                ? "Timetable fetch timed out"
+                : "An error occurred while fetching timetable data";
+            return c.json({ error: message }, 500);
         }
     }
 );
