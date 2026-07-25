@@ -66,7 +66,8 @@ beforeAll(async () => {
                 uniqueDept: [
                     "Basic Sciences",
                     "Computer Science and Engineering", 
-                    "Electronics and Communication Engineering"
+                    "Electronics and Communication Engineering",
+                    "Chemical Engineering"
                 ]
             }));
         }
@@ -80,6 +81,9 @@ beforeAll(async () => {
             }
             if (urlStr.includes("Electronics%20and%20Communication%20Engineering")) {
                 return new Response(JSON.stringify("ece-code"));
+            }
+            if (urlStr.includes("Chemical%20Engineering")) {
+                return new Response(JSON.stringify("che-code"));
             }
         }
         
@@ -97,6 +101,11 @@ beforeAll(async () => {
             if (urlStr.includes("code=ece-code")) {
                 return new Response(JSON.stringify([
                     { _id: "3", sem: "B.Tech-ECE-5B", code: "ece-code" }
+                ]));
+            }
+            if (urlStr.includes("code=che-code")) {
+                return new Response(JSON.stringify([
+                    { _id: "4", sem: "B.Tech-CH-3", code: "che-code" }
                 ]));
             }
         }
@@ -208,9 +217,38 @@ describe("OpensourceNITJ API Integration Tests", () => {
             expect(body).toHaveProperty("notes");
         });
 
+        it("should fetch 2nd Year (CHE) Timetable (single-section branch fallback)", async () => {
+            const res = await app.request("/timetable/year/2?branch=CHE");
+            expect(res.status).toBe(200);
+            const body = (await res.json()) as any;
+            expect(body).toHaveProperty("timetableData");
+            expect(body.timetableData.Monday.period1[0][0].subject).toBe("Mock Subject");
+            expect(body).toHaveProperty("notes");
+        });
+
         it("should return 400 or 404 for non-existent branch or section", async () => {
             const res = await app.request("/timetable/year/2?branch=XYZ&group=Z");
             expect([400, 404]).toContain(res.status);
         });
     });
+
+    describe("OpenAPI Documentation", () => {
+        it("should expose branch enums correctly", async () => {
+            const res = await app.request("/openapi");
+            expect(res.status).toBe(200);
+            const openapi = (await res.json()) as any;
+            
+            // Check that the query parameter schema for branch has an enum listing all branches
+            const branchQueryParam = openapi.paths["/timetable/year/:year"].get.parameters.find(
+                (p: any) => p.name === "branch" && p.in === "query"
+            );
+            
+            expect(branchQueryParam).toBeDefined();
+            expect(branchQueryParam.schema.enum).toEqual([
+                "CSE", "CS", "IT", "ECE", "EC", "EE", "ME", "CE",
+                "BT", "CH", "CHE", "ICE", "IPE", "TT", "MNC", "MC"
+            ]);
+        });
+    });
 });
+

@@ -5,8 +5,27 @@ import type {
   sessionDeptDataType,
 } from "../types/xceed";
 
+export const allowedBranches = [
+  "CSE",
+  "CS",
+  "IT",
+  "ECE",
+  "EC",
+  "EE",
+  "ME",
+  "CE",
+  "BT",
+  "CH",
+  "CHE",
+  "ICE",
+  "IPE",
+  "TT",
+  "MNC",
+  "MC",
+] as const;
+
 export const branchToDeptMap: Record<
-  string,
+  (typeof allowedBranches)[number],
   { deptName: string; semPrefix: string }
 > = {
   CSE: {
@@ -124,7 +143,7 @@ export async function getHigherYearGroup(
     );
   }
 
-  if (!semEntry && grpUpper === "") {
+  if (!semEntry) {
     semEntry = semData.find(
       (entry) =>
         entry.code === code &&

@@ -1,6 +1,6 @@
 import { OpenAPIHono, z } from "@hono/zod-openapi";
 import config from "../../../config.json" assert { type: "json" };
-import { getHigherYearGroup } from "../../../lib/higherYears";
+import { getHigherYearGroup, allowedBranches } from "../../../lib/higherYears";
 import type { timetableDataType } from "../../../types/xceed";
 
 export const higherYears = new OpenAPIHono();
@@ -11,10 +11,7 @@ const pathSchema = z.object({
 
 const querySchema = z.object({
   branch: z
-    .string()
-    .min(2)
-    .max(5)
-    .regex(/^[A-Za-z]+$/, "Branch must contain only letters")
+    .enum(allowedBranches)
     .openapi({ example: "CSE" }),
   group: z
     .string()
@@ -168,14 +165,37 @@ higherYears.openapi(
         period8: { start: "04:30 PM", end: "05:30 PM", duration: "1 hour" },
       };
 
+      const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
       const structuredTimetable: Record<string, Record<string, Array<Array<any>>>> = {};
 
       for (const [day, periods] of Object.entries(rawData.timetableData)) {
+        if (!DAYS_OF_WEEK.includes(day)) {
+          continue;
+        }
         structuredTimetable[day] = {};
-        for (const [periodName, slots] of Object.entries(periods)) {
+        for (const [periodName, rawSlots] of Object.entries(periods)) {
+          // Normalize slots to a 2D array defensively
+          let slots: Array<Array<any>> = [];
+          if (Array.isArray(rawSlots)) {
+            slots = rawSlots.map((item) => {
+              if (Array.isArray(item)) {
+                return item;
+              } else if (item && typeof item === "object") {
+                return [item];
+              }
+              return [];
+            }).filter(list => list.length > 0);
+          } else if (rawSlots && typeof rawSlots === "object") {
+            const slotObj = rawSlots as any;
+            if (slotObj.subject || slotObj.faculty || slotObj.room) {
+              slots = [[slotObj]];
+            }
+          }
+
           structuredTimetable[day][periodName] = slots.map((concurrentSlotList) => {
             return concurrentSlotList.map((slot) => {
-              const subjectText = slot.subject.trim();
+              if (!slot) return null;
+              const subjectText = (slot.subject || "").trim();
               
               // Attempt to extract subject code if present in subjectText (e.g. "CSX-201 Data Structures" or "CSX 201")
               const codeMatch = subjectText.match(/^([A-Z]{2,4}[- ]?\d{3})/i);
@@ -196,8 +216,8 @@ higherYears.openapi(
               return {
                 subject: subjectText,
                 subjectCode,
-                faculty: slot.faculty.trim(),
-                room: slot.room.trim(),
+                faculty: (slot.faculty || "").trim(),
+                room: (slot.room || "").trim(),
                 day,
                 startTime: timings.start,
                 endTime: timings.end,
@@ -208,7 +228,7 @@ higherYears.openapi(
                 subSection: subSection || null,
                 courseType,
               };
-            });
+            }).filter(Boolean);
           });
         }
       }
@@ -218,6 +238,7 @@ higherYears.openapi(
         notes: rawData.notes,
       }, 200);
     } catch (error: unknown) {
+      console.error("Error in higherYears timetable route handler:", error);
       if (
         error instanceof Error &&
         error.message.startsWith("Invalid branch abbreviation")
